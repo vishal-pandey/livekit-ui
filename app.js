@@ -20,9 +20,7 @@ const CONNECTION_API = 'https://vishal-voice-agent.codeshare.co.in/api/connectio
 
 // Application State
 let room = null;
-let isCameraEnabled = false;
 let isMicEnabled = false;
-let isScreenSharing = false;
 
 // DOM Elements
 const elements = {
@@ -38,9 +36,7 @@ const elements = {
   participantCount: document.getElementById('participantCount'),
   connectionStatus: document.getElementById('connectionStatus'),
   videoGrid: document.getElementById('videoGrid'),
-  toggleCamera: document.getElementById('toggleCamera'),
   toggleMic: document.getElementById('toggleMic'),
-  toggleScreenShare: document.getElementById('toggleScreenShare'),
   leaveRoom: document.getElementById('leaveRoom'),
   loadingOverlay: document.getElementById('loadingOverlay'),
   audioPrompt: document.getElementById('audioPrompt'),
@@ -54,9 +50,7 @@ const elements = {
 function init() {
   elements.connectBtn.addEventListener('click', handleAutoConnect);
   elements.joinForm.addEventListener('submit', handleJoinRoom);
-  elements.toggleCamera.addEventListener('click', handleToggleCamera);
   elements.toggleMic.addEventListener('click', handleToggleMic);
-  elements.toggleScreenShare.addEventListener('click', handleToggleScreenShare);
   elements.leaveRoom.addEventListener('click', handleLeaveRoom);
   elements.startAudioBtn.addEventListener('click', handleStartAudio);
   elements.clearTranscript.addEventListener('click', clearTranscriptions);
@@ -261,8 +255,8 @@ async function connectToRoom(serverUrl, token, roomName, participantName, iceSer
     }
   }, 100);
   
-  // Don't auto-enable camera and microphone - let user do it manually
-  console.log('✅ Connection complete. User can now enable camera/mic.');
+  // Don't auto-enable microphone - user can toggle it manually
+  console.log('✅ Connection complete. User can now toggle microphone.');
 }
 
 // Setup Room Event Listeners
@@ -598,59 +592,16 @@ function getInitials(name) {
     .slice(0, 2);
 }
 
-// Enable Camera and Microphone
-async function enableCameraAndMicrophone() {
+// Enable Microphone Only
+async function enableMicrophone() {
   try {
-    await room.localParticipant.enableCameraAndMicrophone();
-    isCameraEnabled = true;
+    await room.localParticipant.setMicrophoneEnabled(true);
     isMicEnabled = true;
     updateControlButtons();
-    
-    // Add local participant video
-    addLocalParticipantVideo();
+    console.log('✅ Microphone enabled');
   } catch (error) {
-    console.error('Failed to enable camera and microphone:', error);
-    showError('Failed to enable camera and microphone');
-  }
-}
-
-// Add Local Participant Video
-function addLocalParticipantVideo() {
-  const localParticipant = room.localParticipant;
-  
-  // Create container for local participant
-  let container = document.getElementById(`participant-${localParticipant.sid}`);
-  if (!container) {
-    container = createParticipantContainer(localParticipant);
-  }
-  
-  // Attach camera track
-  const cameraTrack = localParticipant.getTrackPublication(Track.Source.Camera);
-  if (cameraTrack?.track) {
-    const element = cameraTrack.track.attach();
-    // Mirror local video
-    element.style.transform = 'scaleX(-1)';
-    container.querySelector('.media-container')?.appendChild(element);
-    
-    // Remove placeholder
-    const placeholder = container.querySelector('.video-placeholder');
-    if (placeholder) placeholder.remove();
-  }
-}
-
-// Handle Toggle Camera
-async function handleToggleCamera() {
-  if (!room) return;
-  
-  try {
-    isCameraEnabled = !isCameraEnabled;
-    await room.localParticipant.setCameraEnabled(isCameraEnabled);
-    updateControlButtons();
-  } catch (error) {
-    console.error('Failed to toggle camera:', error);
-    showError('Failed to toggle camera');
-    isCameraEnabled = !isCameraEnabled;
-    updateControlButtons();
+    console.error('Failed to enable microphone:', error);
+    showError('Failed to enable microphone');
   }
 }
 
@@ -666,22 +617,6 @@ async function handleToggleMic() {
     console.error('Failed to toggle microphone:', error);
     showError('Failed to toggle microphone');
     isMicEnabled = !isMicEnabled;
-    updateControlButtons();
-  }
-}
-
-// Handle Toggle Screen Share
-async function handleToggleScreenShare() {
-  if (!room) return;
-  
-  try {
-    isScreenSharing = !isScreenSharing;
-    await room.localParticipant.setScreenShareEnabled(isScreenSharing);
-    updateControlButtons();
-  } catch (error) {
-    console.error('Failed to toggle screen share:', error);
-    showError('Failed to toggle screen share');
-    isScreenSharing = !isScreenSharing;
     updateControlButtons();
   }
 }
@@ -710,26 +645,12 @@ async function handleStartAudio() {
 
 // Update Control Buttons
 function updateControlButtons() {
-  if (isCameraEnabled) {
-    elements.toggleCamera.classList.add('active');
-    elements.toggleCamera.classList.remove('disabled');
-  } else {
-    elements.toggleCamera.classList.remove('active');
-    elements.toggleCamera.classList.add('disabled');
-  }
-  
   if (isMicEnabled) {
     elements.toggleMic.classList.add('active');
     elements.toggleMic.classList.remove('disabled');
   } else {
     elements.toggleMic.classList.remove('active');
     elements.toggleMic.classList.add('disabled');
-  }
-  
-  if (isScreenSharing) {
-    elements.toggleScreenShare.classList.add('active');
-  } else {
-    elements.toggleScreenShare.classList.remove('active');
   }
 }
 
@@ -850,9 +771,7 @@ function cleanup() {
   elements.videoGrid.innerHTML = '';
   
   // Reset state
-  isCameraEnabled = false;
   isMicEnabled = false;
-  isScreenSharing = false;
   updateControlButtons();
 }
 // Transcription Management
