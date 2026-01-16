@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Video Conference</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Connection Form -->
+        <div id="connectionForm" class="connection-form">
+            <div class="form-card">
+                <h1>Voice Assistant</h1>
+                <p class="subtitle">Click below to connect to your voice assistant</p>
+                <button id="connectBtn" class="btn btn-primary">Connect Now</button>
+                <div id="connectionError" class="error-message"></div>
+                
+                <!-- Manual Connection (Optional) -->
+                <details class="manual-connect">
+                    <summary>Advanced: Manual Connection</summary>
+                    <form id="joinForm">
+                        <div class="form-group">
+                            <label for="roomName">Room Name</label>
+                            <input type="text" id="roomName" placeholder="Enter room name">
+                        </div>
+                        <div class="form-group">
+                            <label for="participantName">Your Name</label>
+                            <input type="text" id="participantName" placeholder="Enter your name">
+                        </div>
+                        <div class="form-group">
+                            <label for="token">Access Token</label>
+                            <input type="text" id="token" placeholder="Enter access token">
+                        </div>
+                        <button type="submit" class="btn btn-secondary">Join Manually</button>
+                    </form>
+                </details>
+            </div>
+        </div>
+
+        <!-- Room View -->
+        <div id="roomView" class="room-view hidden">
+            <!-- Header -->
+            <div class="room-header">
+                <div class="room-info">
+                    <h2 id="roomNameDisplay">Room</h2>
+                    <span id="participantCount" class="participant-count">0 participants</span>
+                </div>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">Connected</span>
+                </div>
+            </div>
+
+            <!-- Video Grid -->
+            <div id="videoGrid" class="video-grid">
+                <!-- Videos will be dynamically added here -->
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <div class="control-buttons">
+                    <button id="toggleCamera" class="control-btn" title="Toggle Camera">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M23 7l-7 5 7 5V7z"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                        <span>Camera</span>
+                    </button>
+                    
+                    <button id="toggleMic" class="control-btn" title="Toggle Microphone">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <span>Microphone</span>
+                    </button>
+                    
+                    <button id="toggleScreenShare" class="control-btn" title="Share Screen">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        <span>Share Screen</span>
+                    </button>
+                    
+                    <button id="leaveRoom" class="control-btn btn-danger" title="Leave Room">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                            <line x1="12" y1="2" x2="12" y2="12"/>
+                        </svg>
+                        <span>Leave</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Playback Prompt -->
+            <div id="audioPrompt" class="audio-prompt hidden">
+                <div class="prompt-card">
+                    <h3>Audio Playback Blocked</h3>
+                    <p>Click the button below to enable audio playback</p>
+                    <button id="startAudioBtn" class="btn btn-primary">Enable Audio</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p>Connecting to room...</p>
+        </div>
+    </div>
+
+    <!-- Include LiveKit SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
