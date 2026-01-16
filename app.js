@@ -270,6 +270,7 @@ function setupRoomEventListeners() {
   room
     .on(RoomEvent.TrackSubscribed, handleTrackSubscribed)
     .on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+    .on(RoomEvent.TrackPublished, handleTrackPublished)
     .on(RoomEvent.TrackMuted, handleTrackMuted)
     .on(RoomEvent.TrackUnmuted, handleTrackUnmuted)
     .on(RoomEvent.ParticipantConnected, handleParticipantConnected)
@@ -306,6 +307,17 @@ function handleTrackUnsubscribed(track, publication, participant) {
   console.log('Track unsubscribed:', track.kind, participant.identity);
   track.detach();
   removeParticipantVideo(participant, track.source);
+}
+
+// Track Published
+function handleTrackPublished(publication, participant) {
+  console.log('📢 Track published:', {
+    kind: publication.kind,
+    source: publication.source,
+    participant: participant.identity,
+    trackSid: publication.trackSid,
+    trackName: publication.trackName
+  });
 }
 
 // Track Muted
@@ -730,39 +742,52 @@ function updateParticipantCount() {
 
 // Data Received (for transcriptions)
 function handleDataReceived(payload, participant, kind, topic) {
-  console.log('📝 Data received:', {
-    participant: participant?.identity,
-    kind,
-    topic,
-    size: payload.length
-  });
+  console.log('📝 ===== DATA RECEIVED =====');
+  console.log('📝 Raw payload:', payload);
+  console.log('📝 Participant:', participant?.identity, participant?.sid);
+  console.log('📝 Kind:', kind);
+  console.log('📝 Topic:', topic);
+  console.log('📝 Payload length:', payload.length);
+  console.log('📝 Payload type:', typeof payload, payload.constructor.name);
   
   try {
     const decoder = new TextDecoder();
     const text = decoder.decode(payload);
     console.log('📝 Decoded text:', text);
+    console.log('📝 Text length:', text.length);
     
     // Try to parse as JSON (common format for transcription data)
     try {
       const data = JSON.parse(text);
-      console.log('📝 Parsed JSON:', data);
+      console.log('📝 ✅ Parsed as JSON:', data);
       
       // Handle different transcription formats
-      if (data.type === 'transcription' || data.transcript || data.text) {
-        const transcriptText = data.transcript || data.text || data.message;
-        const speaker = data.speaker || data.participant || participant?.identity || 'Agent';
+      // Format 1: {type: 'transcription', transcript: '...', speaker: '...'}
+      // Format 2: {text: '...', participant: '...'}
+      // Format 3: {message: '...'}
+      if (data.type === 'transcription' || data.transcript || data.text || data.message) {
+        const transcriptText = data.transcript || data.text || data.message || '';
+        const speaker = data.speaker || data.participant || data.user || participant?.identity || 'Agent';
         const isFinal = data.is_final !== false; // Default to true
         
+        console.log('📝 ✅ Adding transcription:', { speaker, transcriptText, isFinal });
         addTranscription(speaker, transcriptText, isFinal);
+      } else {
+        console.log('📝 ⚠️ JSON data does not match transcription format:', Object.keys(data));
+        // Add it anyway as raw JSON for debugging
+        addTranscription(participant?.identity || 'Agent', JSON.stringify(data, null, 2), true);
       }
     } catch (parseError) {
+      console.log('📝 ℹ️ Not JSON, treating as plain text');
       // If not JSON, treat as plain text transcription
       const speaker = participant?.identity || 'Agent';
+      console.log('📝 ✅ Adding plain text transcription:', { speaker, text });
       addTranscription(speaker, text, true);
     }
   } catch (error) {
-    console.error('Error processing data:', error);
+    console.error('📝 ❌ Error processing data:', error);
   }
+  console.log('📝 ===== END DATA RECEIVED =====');
 }
 
 // Show Error
