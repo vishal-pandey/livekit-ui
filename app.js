@@ -811,8 +811,8 @@ function handleTranscriptionReceived(transcriptions, participant) {
     const isFinal = transcription.final !== false;
     
     if (transcription.text && transcription.text.trim()) {
-      console.log('📝 ✅ Adding transcription to UI:', speaker, transcription.text);
-      addTranscription(speaker, transcription.text, isFinal);
+      console.log('📝 ✅ Adding transcription to UI:', speaker, transcription.text, 'Final:', isFinal);
+      addTranscription(speaker, transcription.text, isFinal, transcription.id);
     }
   });
   
@@ -857,8 +857,9 @@ function cleanup() {
 }
 // Transcription Management
 let transcriptions = [];
+let lastTranscriptionId = new Map(); // Track last transcription ID per participant
 
-function addTranscription(speaker, text, isFinal = true) {
+function addTranscription(speaker, text, isFinal = true, transcriptionId = null) {
   const transcriptContent = document.getElementById('transcriptionContent');
   const emptyMessage = transcriptContent.querySelector('.transcript-empty');
   
@@ -866,9 +867,31 @@ function addTranscription(speaker, text, isFinal = true) {
     emptyMessage.remove();
   }
   
-  // Check if we should update the last entry (for interim transcripts)
+  // Skip if text is empty
+  if (!text || !text.trim()) {
+    return;
+  }
+  
+  // For interim transcripts, update existing entry with same ID
+  if (!isFinal && transcriptionId) {
+    const existingEntry = document.querySelector(`[data-transcription-id="${transcriptionId}"]`);
+    if (existingEntry) {
+      existingEntry.querySelector('.transcript-text').textContent = text;
+      return;
+    }
+  }
+  
+  // For final transcripts, remove the interim version
+  if (isFinal && transcriptionId) {
+    const interimEntry = document.querySelector(`[data-transcription-id="${transcriptionId}"]`);
+    if (interimEntry && interimEntry.classList.contains('interim')) {
+      interimEntry.remove();
+    }
+  }
+  
+  // Check if we should update the last entry (for interim transcripts without ID)
   const lastEntry = transcriptContent.lastElementChild;
-  if (!isFinal && lastEntry && lastEntry.dataset.speaker === speaker && lastEntry.classList.contains('interim')) {
+  if (!isFinal && !transcriptionId && lastEntry && lastEntry.dataset.speaker === speaker && lastEntry.classList.contains('interim')) {
     lastEntry.querySelector('.transcript-text').textContent = text;
     return;
   }
@@ -877,6 +900,9 @@ function addTranscription(speaker, text, isFinal = true) {
   const entry = document.createElement('div');
   entry.className = `transcript-entry ${isFinal ? 'final' : 'interim'}`;
   entry.dataset.speaker = speaker;
+  if (transcriptionId) {
+    entry.dataset.transcriptionId = transcriptionId;
+  }
   
   const timestamp = new Date().toLocaleTimeString();
   
@@ -890,7 +916,7 @@ function addTranscription(speaker, text, isFinal = true) {
   
   transcriptContent.appendChild(entry);
   
-  // Store in array
+  // Store in array only for final transcripts
   if (isFinal) {
     transcriptions.push({ speaker, text, timestamp });
   }
@@ -903,6 +929,7 @@ function clearTranscriptions() {
   const transcriptContent = document.getElementById('transcriptionContent');
   transcriptContent.innerHTML = '<div class="transcript-empty">Transcription will appear here...</div>';
   transcriptions = [];
+  lastTranscriptionId.clear();
 }
 // Initialize when DOM is loaded
 if (document.readyState === 'loading') {
