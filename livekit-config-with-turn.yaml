@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-config
+  namespace: vishal-voice-agent
+data:
+  config.yaml: |
+    log_level: debug
+    port: 7880
+    rtc:
+      use_external_ip: true
+      tcp_port: 7881
+      udp_port: 7882
+      port_range_start: 50000
+      port_range_end: 60000
+      # CRITICAL: Add TURN servers for WebRTC connectivity
+      turn_servers:
+        # Option 1: Use free public TURN (testing only - not for production)
+        - host: openrelay.metered.ca
+          port: 80
+          protocol: udp
+        - host: openrelay.metered.ca
+          port: 443
+          protocol: tcp
+        # Option 2: For production, deploy your own TURN server or use a service
+        # - host: turn.yourserver.com
+        #   port: 3478
+        #   username: your-turn-username
+        #   credential: your-turn-password
+        #   protocol: udp
+    keys:
+      devkey: secret

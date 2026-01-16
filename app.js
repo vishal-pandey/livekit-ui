@@ -45,6 +45,9 @@ const elements = {
   loadingOverlay: document.getElementById('loadingOverlay'),
   audioPrompt: document.getElementById('audioPrompt'),
   startAudioBtn: document.getElementById('startAudioBtn'),
+  transcriptionPanel: document.getElementById('transcriptionPanel'),
+  transcriptionContent: document.getElementById('transcriptionContent'),
+  clearTranscript: document.getElementById('clearTranscript'),
 };
 
 // Initialize Application
@@ -56,6 +59,7 @@ function init() {
   elements.toggleScreenShare.addEventListener('click', handleToggleScreenShare);
   elements.leaveRoom.addEventListener('click', handleLeaveRoom);
   elements.startAudioBtn.addEventListener('click', handleStartAudio);
+  elements.clearTranscript.addEventListener('click', clearTranscriptions);
   
   console.log('LiveKit Application Initialized');
 }
@@ -280,7 +284,8 @@ function setupRoomEventListeners() {
     .on(RoomEvent.Reconnecting, handleReconnecting)
     .on(RoomEvent.Reconnected, handleReconnected)
     .on(RoomEvent.ConnectionStateChanged, handleConnectionStateChanged)
-    .on(RoomEvent.SignalConnected, handleSignalConnected);
+    .on(RoomEvent.SignalConnected, handleSignalConnected)
+    .on(RoomEvent.DataReceived, handleDataReceived);
   
   // Log all events for debugging
   console.log('🔧 Room event listeners set up');
@@ -313,6 +318,43 @@ function handleTrackMuted(publication, participant) {
 function handleTrackUnmuted(publication, participant) {
   console.log('Track unmuted:', publication.kind, participant.identity);
   updateParticipantInfo(participant);
+}
+
+// Data Received (for transcriptions)
+function handleDataReceived(payload, participant, kind, topic) {
+  console.log('📝 Data received:', {
+    participant: participant?.identity,
+    kind,
+    topic,
+    size: payload.length
+  });
+  
+  try {
+    const decoder = new TextDecoder();
+    const text = decoder.decode(payload);
+    console.log('📝 Decoded text:', text);
+    
+    // Try to parse as JSON (common format for transcription data)
+    try {
+      const data = JSON.parse(text);
+      console.log('📝 Parsed JSON:', data);
+      
+      // Handle different transcription formats
+      if (data.type === 'transcription' || data.transcript || data.text) {
+        const transcriptText = data.transcript || data.text || data.message;
+        const speaker = data.speaker || data.participant || participant?.identity || 'Agent';
+        const isFinal = data.is_final !== false; // Default to true
+        
+        addTranscription(speaker, transcriptText, isFinal);
+      }
+    } catch (parseError) {
+      // If not JSON, treat as plain text transcription
+      const speaker = participant?.identity || 'Agent';
+      addTranscription(speaker, text, true);
+    }
+  } catch (error) {
+    console.error('Error processing data:', error);
+  }
 }
 
 // Participant Connected
@@ -686,6 +728,43 @@ function updateParticipantCount() {
   elements.participantCount.textContent = `${count} participant${count !== 1 ? 's' : ''}`;
 }
 
+// Data Received (for transcriptions)
+function handleDataReceived(payload, participant, kind, topic) {
+  console.log('📝 Data received:', {
+    participant: participant?.identity,
+    kind,
+    topic,
+    size: payload.length
+  });
+  
+  try {
+    const decoder = new TextDecoder();
+    const text = decoder.decode(payload);
+    console.log('📝 Decoded text:', text);
+    
+    // Try to parse as JSON (common format for transcription data)
+    try {
+      const data = JSON.parse(text);
+      console.log('📝 Parsed JSON:', data);
+      
+      // Handle different transcription formats
+      if (data.type === 'transcription' || data.transcript || data.text) {
+        const transcriptText = data.transcript || data.text || data.message;
+        const speaker = data.speaker || data.participant || participant?.identity || 'Agent';
+        const isFinal = data.is_final !== false; // Default to true
+        
+        addTranscription(speaker, transcriptText, isFinal);
+      }
+    } catch (parseError) {
+      // If not JSON, treat as plain text transcription
+      const speaker = participant?.identity || 'Agent';
+      addTranscription(speaker, text, true);
+    }
+  } catch (error) {
+    console.error('Error processing data:', error);
+  }
+}
+
 // Show Error
 function showError(message) {
   elements.connectionError.textContent = message;
@@ -722,7 +801,55 @@ function cleanup() {
   isScreenSharing = false;
   updateControlButtons();
 }
+// Transcription Management
+let transcriptions = [];
 
+function addTranscription(speaker, text, isFinal = true) {
+  const transcriptContent = document.getElementById('transcriptionContent');
+  const emptyMessage = transcriptContent.querySelector('.transcript-empty');
+  
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
+  
+  // Check if we should update the last entry (for interim transcripts)
+  const lastEntry = transcriptContent.lastElementChild;
+  if (!isFinal && lastEntry && lastEntry.dataset.speaker === speaker && lastEntry.classList.contains('interim')) {
+    lastEntry.querySelector('.transcript-text').textContent = text;
+    return;
+  }
+  
+  // Create new transcript entry
+  const entry = document.createElement('div');
+  entry.className = `transcript-entry ${isFinal ? 'final' : 'interim'}`;
+  entry.dataset.speaker = speaker;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  
+  entry.innerHTML = `
+    <div class="transcript-header-row">
+      <span class="transcript-speaker">${speaker}</span>
+      <span class="transcript-time">${timestamp}</span>
+    </div>
+    <div class="transcript-text">${text}</div>
+  `;
+  
+  transcriptContent.appendChild(entry);
+  
+  // Store in array
+  if (isFinal) {
+    transcriptions.push({ speaker, text, timestamp });
+  }
+  
+  // Auto-scroll to bottom
+  transcriptContent.scrollTop = transcriptContent.scrollHeight;
+}
+
+function clearTranscriptions() {
+  const transcriptContent = document.getElementById('transcriptionContent');
+  transcriptContent.innerHTML = '<div class="transcript-empty">Transcription will appear here...</div>';
+  transcriptions = [];
+}
 // Initialize when DOM is loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
