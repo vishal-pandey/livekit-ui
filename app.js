@@ -286,7 +286,8 @@ function setupRoomEventListeners() {
     .on(RoomEvent.Reconnected, handleReconnected)
     .on(RoomEvent.ConnectionStateChanged, handleConnectionStateChanged)
     .on(RoomEvent.SignalConnected, handleSignalConnected)
-    .on(RoomEvent.DataReceived, handleDataReceived);
+    .on(RoomEvent.DataReceived, handleDataReceived)
+    .on(RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
   
   // Log all events for debugging
   console.log('🔧 Room event listeners set up');
@@ -788,6 +789,34 @@ function handleDataReceived(payload, participant, kind, topic) {
     console.error('📝 ❌ Error processing data:', error);
   }
   console.log('📝 ===== END DATA RECEIVED =====');
+}
+
+// Transcription Received
+function handleTranscriptionReceived(transcriptions, participant) {
+  console.log('📝 ===== TRANSCRIPTION RECEIVED =====');
+  console.log('📝 Transcriptions array:', transcriptions);
+  console.log('📝 Participant:', participant?.identity);
+  
+  transcriptions.forEach(transcription => {
+    console.log('📝 Transcription segment:', {
+      text: transcription.text,
+      language: transcription.language,
+      id: transcription.id,
+      final: transcription.final,
+      startTime: transcription.startTime,
+      endTime: transcription.endTime
+    });
+    
+    const speaker = participant?.identity || 'Agent';
+    const isFinal = transcription.final !== false;
+    
+    if (transcription.text && transcription.text.trim()) {
+      console.log('📝 ✅ Adding transcription to UI:', speaker, transcription.text);
+      addTranscription(speaker, transcription.text, isFinal);
+    }
+  });
+  
+  console.log('📝 ===== END TRANSCRIPTION RECEIVED =====');
 }
 
 // Show Error
